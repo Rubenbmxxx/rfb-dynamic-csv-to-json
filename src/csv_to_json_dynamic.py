@@ -28,17 +28,17 @@ def parse_csv_to_json(columns):
 
 def csv_to_json(pdf_csv, json_schema, grouped_df=None):
     json_formatted = []
-    level = None
-    if not level:
-        level = [x for x in json_schema.keys() if len(x.split("_")) == 1]
-        grouped_df = pdf_csv.groupby(by=level, dropna=False)
+    levels = None
+    if not levels:
+        levels = [x for x in json_schema.keys() if len(x.split("_")) == 1]
+        grouped_df = pdf_csv.groupby(by=levels, dropna=False)
     elif not grouped_df:
-        grouped_df = pdf_csv.groupby(by=level, dropna=False)
+        grouped_df = pdf_csv.groupby(by=levels, dropna=False)
 
     for values, schema in grouped_df:
         json_data = {}
 
-        for i, key in enumerate(level):
+        for i, key in enumerate(levels):
             if not json_schema[key]:  # json_schema[key] is None does not work
                 json_data[key] = values[i]
             elif key.endswith("List"):
@@ -47,8 +47,8 @@ def csv_to_json(pdf_csv, json_schema, grouped_df=None):
                 sub_data = schema[slc_cols]
                 # subloop = 1
                 grp_sub_data = sub_data.groupby([col for col in slc_cols if col not in grp_cols])
-                for sk, sv in grp_sub_data:
-                    gen_json = set_data(json_schema, key, sk, sv)
+                for sub_values, sub_schema in grp_sub_data:
+                    gen_json = set_data(json_schema, key, sub_values, sub_schema)
                     json_data[key].append(gen_json)
             else:
                 json_data[key] = {}
@@ -58,9 +58,12 @@ def csv_to_json(pdf_csv, json_schema, grouped_df=None):
     return json_formatted
 
 
-def set_data(json_schema, key, sk, sv):
-    # for j in json_schema:
-    return 1
+def set_data(json_schema, key, sub_values, sub_schema):
+    result = {}
+    for sub_level in json_schema[key]:
+        for i, key in enumerate(json_schema[sub_level]):
+            result[key] = sub_values[i]
+    return result
 
 
 def extract_group_columns(json_schema, nested_levels):
